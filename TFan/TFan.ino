@@ -35,11 +35,11 @@ void loop()
   client.flush();
   int value = LOW;
   if(request.indexOf("/RELAY=ON") != -1)  {
-    digitalWrite(RELAY, HIGH); // Turn RELAY ON
+    digitalWrite(RELAY, LOW); // Turn RELAY ON
     value = HIGH;
   }
   if(request.indexOf("/RELAY=OFF") != -1)  {
-    digitalWrite(RELAY, LOW); // Turn RELAY OFF
+    digitalWrite(RELAY, HIGH); // Turn RELAY OFF
     value = LOW;
   }
 //*------------------HTML Page Code---------------------*//
