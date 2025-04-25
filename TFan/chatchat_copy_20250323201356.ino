@@ -8,9 +8,9 @@
 
 DHT dht(DHTPIN, DHTTYPE);
 WiFiClient client;
-const char* ssid = "RSU-IOT"; // Your WiFi SSID
-const char* password = "1otRSU@6F00d"; // Your WiFi Password
-const char* serverName = "http://htetlin.atwebpages.com/chatchat.php"; // Your server URL
+const char* ssid = "Mine_5G"; // Your WiFi SSID
+const char* password = "882023123"; // Your WiFi Password
+const char* serverName = "http://tempfan.atwebpages.com/index.php"; // Your server URL
 
 void setup() {
     Serial.begin(115200);
