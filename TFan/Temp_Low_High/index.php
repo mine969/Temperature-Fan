@@ -3,12 +3,14 @@
 $conn = new mysqli("fdb1030.awardspace.net", "4624843_mine", "Leepal123", "4624843_mine", 3306);
 
 // 1. Save data from ESP8266
-if (isset($_GET['temperature']) && isset($_GET['humidity']) && isset($_GET['relay'])) {
+if (isset($_GET['temperature']) && isset($_GET['humidity']) && isset($_GET['relay']) && isset($_GET['mode'])) {
     $t = $_GET['temperature'];
     $h = $_GET['humidity'];
     $r = $_GET['relay'];
+    $m = $_GET['mode'];
 
-    $conn->query("INSERT INTO relaycontrol (temperature, humidity, relay) VALUES ('$t', '$h', '$r')");
+    $conn->query("INSERT INTO relaycontrol (temperature, humidity, relay, mode) VALUES ('$t', '$h', 0, 'manual')");
+
     echo "Data saved!";
     exit();
 }
@@ -21,14 +23,15 @@ $h = $latest ? $latest['humidity'] : 0;
 // 3. Handle manual control (and log it too)
 if (isset($_POST['fan_on'])) {
     file_put_contents("manual.txt", "on");
-    $conn->query("INSERT INTO relaycontrol (temperature, humidity, relay) VALUES ('$t', '$h', 0)");
+    $conn->query("INSERT INTO relaycontrol (temperature, humidity, relay, mode) VALUES ('$t', '$h', 0, 'manual')");
 }
 if (isset($_POST['fan_off'])) {
     file_put_contents("manual.txt", "off");
-    $conn->query("INSERT INTO relaycontrol (temperature, humidity, relay) VALUES ('$t', '$h', 1)");
+    $conn->query("INSERT INTO relaycontrol (temperature, humidity, relay, mode) VALUES ('$t', '$h', 1, 'manual')");
 }
 if (isset($_POST['auto'])) {
     file_put_contents("manual.txt", "auto");
+    $conn->query("INSERT INTO relaycontrol (temperature, humidity, relay, mode) VALUES ('$t', '$h', '{$latest['relay']}', 'auto')");
 }
 
 // 4. Get updated manual mode
@@ -52,7 +55,7 @@ $logs = $conn->query("SELECT * FROM relaycontrol ORDER BY id DESC LIMIT 10");
         <p><strong>Temperature:</strong> <?= $latest['temperature'] ?> °C</p>
         <p><strong>Humidity:</strong> <?= $latest['humidity'] ?> %</p>
         <p><strong>Fan Status:</strong> <?= $latest['relay'] == 0 ? 'ON' : 'OFF' ?></p>
-        <p><strong>Mode:</strong> <?= strtoupper($manual) ?></p>
+        <p><strong>Mode:</strong> <?= strtoupper($manual ?? 'AUTO') ?></p>
         <p><strong>Time:</strong> <?= $latest['recordate'] ?></p>
     <?php else: ?>
         <p>No data available</p>
@@ -67,20 +70,23 @@ $logs = $conn->query("SELECT * FROM relaycontrol ORDER BY id DESC LIMIT 10");
 
     <h2>Last 10 Logs</h2>
     <table border="1" cellpadding="5">
-        <tr>
-            <th>Time</th>
-            <th>Temperature (°C)</th>
-            <th>Humidity (%)</th>
-            <th>Fan</th>
-        </tr>
-        <?php while ($row = $logs->fetch_assoc()): ?>
-        <tr>
-            <td><?= $row['recordate'] ?></td>
-            <td><?= $row['temperature'] ?></td>
-            <td><?= $row['humidity'] ?></td>
-            <td><?= $row['relay'] == 0 ? 'ON' : 'OFF' ?></td>
-        </tr>
-        <?php endwhile; ?>
+       <tr>
+    <th>Time</th>
+    <th>Temp (°C)</th>
+    <th>Humidity (%)</th>
+    <th>Fan</th>
+    <th>Mode</th>
+</tr>
+<?php while ($row = $logs->fetch_assoc()): ?>
+<tr>
+    <td><?= $row['recordate'] ?></td>
+    <td><?= $row['temperature'] ?></td>
+    <td><?= $row['humidity'] ?></td>
+    <td><?= $row['relay'] == 0 ? 'ON' : 'OFF' ?></td>
+    <td><?= strtoupper($row['mode'] ?? 'AUTO') ?></td>
+
+</tr>
+<?php endwhile; ?>
     </table>
 </body>
 </html>

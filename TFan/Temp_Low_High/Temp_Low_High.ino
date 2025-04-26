@@ -2,95 +2,99 @@
 #include <ESP8266HTTPClient.h>
 #include "DHT.h"
 
-#define RELAY D1        // Use D1 instead of D0
-#define DHTPIN 4        // D2 on NodeMCU
-#define DHTTYPE DHT11   
+#define RELAY D0           // Relay connected to GPIO16 (D0)
+#define DHTPIN 4           // DHT11 data pin (GPIO4)
+#define DHTTYPE DHT11
 
 DHT dht(DHTPIN, DHTTYPE);
 
-const char* ssid = "Mine_2G"; 
-const char* password = "882023123"; 
-const char* serverName = "http://tempfan.atwebpages.com/index.php"; 
+// WiFi & Server
+const char* ssid = "Mine_2G";
+const char* password = "882023123";
+const char* serverName = "http://tempfan.atwebpages.com/index.php";
 const char* manualControlURL = "http://tempfan.atwebpages.com/manual.txt";
 
+// Mode Control
 bool manualMode = false;
 int manualRelayState = 1; // 0 = ON, 1 = OFF
+unsigned long lastLogTime = 0;
+const unsigned long logInterval = 10 * 60 * 1000;  // 10 min in milliseconds
+unsigned long lastCheckTime = 0;
+const unsigned long checkInterval = 2000;          // 5 seconds
 
 void setup() {
-    Serial.begin(115200);
-    dht.begin();
-    pinMode(RELAY, OUTPUT);
-    digitalWrite(RELAY, HIGH);  // OFF by default
+  Serial.begin(115200);
+  dht.begin();
+  pinMode(RELAY, OUTPUT);
+  digitalWrite(RELAY, 1);  // Default OFF
 
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-    Serial.println("\nWiFi connected");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nWiFi connected");
 }
 
 void loop() {
-    float t = dht.readTemperature();
-    float h = dht.readHumidity();
+  unsigned long now = millis();
 
-    if (isnan(t) || isnan(h)) {
-        Serial.println("Failed to read from DHT sensor!");
-        return;
+  if (now - lastCheckTime >= checkInterval) {
+    lastCheckTime = now;
+
+    float temp = dht.readTemperature();
+    float hum = dht.readHumidity();
+
+    if (isnan(temp) || isnan(hum)) {
+      Serial.println("Failed to read DHT!");
+      return;
     }
-
-    Serial.println("Temp: " + String(t) + " | Hum: " + String(h));
 
     if (WiFi.status() == WL_CONNECTED) {
-        WiFiClient client;
-        HTTPClient http;
+      WiFiClient client;
+      HTTPClient http;
 
-        // Step 1: Check manual control file
-        http.begin(client, manualControlURL);
-        int code = http.GET();
-        if (code == 200) {
-            String control = http.getString();
-            control.trim(); // remove \n, space
-            Serial.println("Manual Control Value: [" + control + "]");
+      // Check manual mode status
+      http.begin(client, manualControlURL);
+      int code = http.GET();
+      if (code == 200) {
+        String status = http.getString();
+        status.trim();
 
-            if (control == "on") {
-                manualMode = true;
-                manualRelayState = 0;
-            } else if (control == "off") {
-                manualMode = true;
-                manualRelayState = 1;
-            } else {
-                manualMode = false;
-            }
+        if (status == "on") {
+          manualMode = true;
+          manualRelayState = 0;  // ON
+        } else if (status == "off") {
+          manualMode = true;
+          manualRelayState = 1;  // OFF
         } else {
-            Serial.println("Error reading manual.txt");
+          manualMode = false; // auto
+        }
+      }
+      http.end();
+
+      // Control fan
+      int relayState = manualMode ? manualRelayState : (temp >= 28 ? 0 : 1); // 0 = ON, 1 = OFF
+      digitalWrite(RELAY, relayState);
+
+      Serial.print("Mode: ");
+      Serial.print(manualMode ? "MANUAL" : "AUTO");
+      Serial.print(" | Fan: ");
+      Serial.println(relayState == 0 ? "ON" : "OFF");
+
+      // Log every 10 mins
+      if (now - lastLogTime >= logInterval) {
+        lastLogTime = now;
+        String logURL = serverName + String("?temperature=") + temp + "&humidity=" + hum + "&relay=" + relayState;
+        http.begin(client, logURL);
+        int logCode = http.GET();
+        if (logCode > 0) {
+          Serial.println("Data logged");
+        } else {
+          Serial.println("Failed to log data");
         }
         http.end();
-
-        // Step 2: Decide relay state
-        int relayState;
-        if (manualMode) {
-            relayState = manualRelayState;
-            Serial.println("Using Manual Mode. Relay = " + String(relayState));
-        } else {
-            relayState = (t >= 28) ? 0 : 1;  // LOW = ON
-            Serial.println("Using Auto Mode. Relay = " + String(relayState));
-        }
-
-        digitalWrite(RELAY, relayState);
-
-        // Step 3: Log data to server
-        String url = serverName;
-        url += "?temperature=" + String(t) + "&humidity=" + String(h) + "&relay=" + String(relayState);
-        http.begin(client, url);
-        int httpCode = http.GET();
-        if (httpCode > 0) {
-            Serial.println("Logged: " + http.getString());
-        } else {
-            Serial.println("Error sending log");
-        }
-        http.end();
+      }
     }
-
-    delay(5000);
+  }
 }
