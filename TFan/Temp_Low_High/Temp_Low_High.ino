@@ -19,6 +19,8 @@ const char* manualControlURL = "http://tempfan.atwebpages.com/manual.txt";
 // ==== Mode Control Variables ====
 bool manualMode = false;
 int manualRelayState = 1;  // 0 = ON, 1 = OFF
+int previousRelayState = 1;
+
 unsigned long lastLogTime = 0;
 const unsigned long logInterval = 10 * 60 * 1000;  // Log every 10 minutes
 unsigned long lastCheckTime = 0;
@@ -82,6 +84,10 @@ void loop() {
       int relayState = manualMode ? manualRelayState : (temp >= 28 ? 0 : 1);
       digitalWrite(RELAY, relayState);
 
+      // === Check if relay state changed ===
+      bool relayStateChanged = (relayState != previousRelayState);
+      previousRelayState = relayState;
+
       // === Display Status ===
       Serial.println("---- Current Status ----");
       Serial.print("Mode        : ");
@@ -100,29 +106,33 @@ void loop() {
 
       // === Prepare Log URL ===
       String logURL = serverName;
-      logURL += "?temperature=" + String(temp);
-      logURL += "&humidity=" + String(hum);
+      logURL += "?temperature=" + String(temp,2);
+      logURL += "&humidity=" + String(hum,2);
       logURL += "&relay=" + String(relayState);
+      logURL += "&mode=" + String(manualMode ? "manual" : "auto");
       Serial.println("Log URL     : " + logURL);
 
       // === Send Log if Needed ===
       bool shouldLog = false;
 
-      if (!manualMode && now - lastLogTime >= logInterval) {
+      if (!manualMode) {
+        if (relayStateChanged) {
+          shouldLog = true;
+          lastLogTime = now; // Reset 10 min timer
+        } else if (now - lastLogTime >= logInterval) {
+          shouldLog = true;
+          lastLogTime = now;
+        }
+      } else {
         shouldLog = true;
         lastLogTime = now;
-      }
-
-      if (manualMode) {
-        shouldLog = true;
-        lastLogTime = now; // Prevent auto log just after manual
       }
 
       if (shouldLog) {
         http.begin(client, logURL);
         int logCode = http.GET();
         if (logCode > 0) {
-          Serial.println("✅ Log sent to server");  
+          Serial.println("✅ Log sent to server");
         } else {
           Serial.println("❌ Log failed to send");
         }
