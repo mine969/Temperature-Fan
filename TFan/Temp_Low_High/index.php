@@ -30,8 +30,14 @@ if (isset($_POST['fan_off'])) {
     $conn->query("INSERT INTO relaycontrol (temperature, humidity, relay, mode) VALUES ('$t', '$h', 1, 'manual')");
 }
 if (isset($_POST['auto'])) {
+    // Set the temperature threshold for auto mode (e.g., 28°C)
+    $relayState = ($t >= 28) ? 0 : 1;  // 0 = ON, 1 = OFF based on temperature
+
+    // Insert the new log with the correct relay state for auto mode
+    $conn->query("INSERT INTO relaycontrol (temperature, humidity, relay, mode) VALUES ('$t', '$h', '$relayState', 'auto')");
+
+    // Log message to indicate the mode change
     file_put_contents("manual.txt", "auto");
-    $conn->query("INSERT INTO relaycontrol (temperature, humidity, relay, mode) VALUES ('$t', '$h', '{$latest['relay']}', 'auto')");
 }
 
 // 4. Get updated manual mode
@@ -46,10 +52,12 @@ $logs = $conn->query("SELECT * FROM relaycontrol ORDER BY id DESC LIMIT 10");
 <head>
     <title>Fan Monitoring System</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
 </head>
 <body>
     <h1>Temperature-Controlled Fan</h1>
-
+	 <canvas id="myChart" style="width:100%;max-width:600px"></canvas>
+    <script src="chart.js"></script>
     <h2>Latest Reading</h2>
     <?php if ($latest): ?>
         <p><strong>Temperature:</strong> <?= $latest['temperature'] ?> °C</p>
