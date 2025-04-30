@@ -122,7 +122,7 @@ void loop() {
         http.begin(client, logURL);
         int logCode = http.GET();
         if (logCode > 0) {
-          Serial.println("✅ Log sent to server");
+          Serial.println("✅ Log sent to server");  
         } else {
           Serial.println("❌ Log failed to send");
         }
