@@ -9,7 +9,8 @@ if (isset($_GET['temperature']) && isset($_GET['humidity']) && isset($_GET['rela
     $r = $_GET['relay'];
     $m = $_GET['mode'];
 
-    $conn->query("INSERT INTO relaycontrol (temperature, humidity, relay, mode) VALUES ('$t', '$h', 0, 'manual')");
+   $conn->query("INSERT INTO relaycontrol (temperature, humidity, relay, mode) VALUES ('$t', '$h', '$r', '$m')");
+
 
     echo "Data saved!";
     exit();
@@ -25,10 +26,13 @@ if (isset($_POST['fan_on'])) {
     file_put_contents("manual.txt", "on");
     $conn->query("INSERT INTO relaycontrol (temperature, humidity, relay, mode) VALUES ('$t', '$h', 0, 'manual')");
 }
+
 if (isset($_POST['fan_off'])) {
     file_put_contents("manual.txt", "off");
     $conn->query("INSERT INTO relaycontrol (temperature, humidity, relay, mode) VALUES ('$t', '$h', 1, 'manual')");
 }
+
+
 if (isset($_POST['auto'])) {
     // Set the temperature threshold for auto mode (e.g., 28°C)
     $relayState = ($t >= 28) ? 0 : 1;  // 0 = ON, 1 = OFF based on temperature
@@ -60,8 +64,9 @@ $logs = $conn->query("SELECT * FROM relaycontrol ORDER BY id DESC LIMIT 10");
     <script src="chart.js"></script>
     <h2>Latest Reading</h2>
     <?php if ($latest): ?>
-        <p><strong>Temperature:</strong> <?= $latest['temperature'] ?> °C</p>
-        <p><strong>Humidity:</strong> <?= $latest['humidity'] ?> %</p>
+        <p><strong>Temperature:</strong> <?= number_format($latest['temperature'], 2) ?> °C</p>
+        <p><strong>Humidity:</strong> <?= number_format($latest['humidity'], 2) ?> %</p>
+
         <p><strong>Fan Status:</strong> <?= $latest['relay'] == 0 ? 'ON' : 'OFF' ?></p>
         <p><strong>Mode:</strong> <?= strtoupper($manual ?? 'AUTO') ?></p>
         <p><strong>Time:</strong> <?= $latest['recordate'] ?></p>
@@ -88,8 +93,8 @@ $logs = $conn->query("SELECT * FROM relaycontrol ORDER BY id DESC LIMIT 10");
 <?php while ($row = $logs->fetch_assoc()): ?>
 <tr>
     <td><?= $row['recordate'] ?></td>
-    <td><?= $row['temperature'] ?></td>
-    <td><?= $row['humidity'] ?></td>
+    <td><?= number_format($row['temperature'], 2) ?></td>
+	<td><?= number_format($row['humidity'], 2) ?></td>
     <td><?= $row['relay'] == 0 ? 'ON' : 'OFF' ?></td>
     <td><?= strtoupper($row['mode'] ?? 'AUTO') ?></td>
 
