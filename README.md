@@ -23,7 +23,7 @@ Temperature-Fan is an IoT-based project that controls a fan based on temperature
 	•	Place index.php, style.css, and log.txt on your web server.
 	•	Ensure the server has PHP support enabled. ￼
 	4.	Accessing the Dashboard:
-	•	Navigate to http://your-server-ip/index.php to view the dashboard.
+	•	Navigate to http://tempfan.atwebpages.com/index.php to view the dashboard.
 	•	Monitor temperature readings and fan status in real-time.
 
 📈 Usage
