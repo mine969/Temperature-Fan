@@ -31,6 +31,8 @@ Temperature-Fan is an IoT-based project that controls a fan based on temperature
 	•	All power on/off events are logged in log.txt with timestamps.
 	•	Use the web dashboard to monitor current temperature and fan status. ￼
 
+ https://www.canva.com/design/DAGzEu8ruoY/2LMkUlmDBE7RO8EyFgh7rQ/edit?utm_content=DAGzEu8ruoY&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+
 🤝 Contributing
 
 Contributions are welcome! Feel free to fork the repository and submit pull requests.
