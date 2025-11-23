@@ -36,6 +36,7 @@ Temperature-Fan is an IoT-based project that controls a fan based on temperature
 🤝 Contributing
 
 Contributions are welcome! Feel free to fork the repository and submit pull requests.
+© 2025 [Hein Htet Zaw]. All rights reserved. This project is for educational and demonstration purposes only. Do not use or distribute without permission.
 
 📄 License
 
